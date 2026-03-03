@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moja Zbirka Puzzlov</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #f4f7f9; 
+            --primary: #4a90e2; 
+            --accent: #ffcc00; 
+            --text: #2d3436; 
+            --white: #ffffff;
+            --danger: #ff7675;
+            --success: #2ecc71;
+        }
+        * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
+
+        /* Strani */
+        .page { display: none; padding: 20px; animation: fadeIn 0.2s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        h1 { font-size: 1.5rem; text-align: center; color: var(--primary); margin: 20px 0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Gumb Domov */
+        .folder {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-left: 6px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .folder:active { transform: scale(0.98); }
+        .folder span { font-size: 2.5rem; }
+        .folder h2 { margin: 0; font-size: 1.2rem; }
+
+        /* Puzzle Arhiv - Layout */
+        .puzzle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn-add-new {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 800;
+            border: none;
+            box-shadow: 0 4px 10px rgba(255, 204, 0, 0.3);
+            cursor: pointer;
+        }
+
+        /* Galerija */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .thumb {
+            background: white;
+            padding: 8px;
+            border-radius: 15px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        .thumb img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
+        .thumb b { display: block; margin-top: 8px; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+        .thumb i { display: block; font-size: 0.75rem; color: #7f8c8d; font-style: normal; margin-top: 2px; }
+
+        /* Obrazec */
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.7rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; margin-bottom: 4px; }
+        input { width: 100%; padding: 12px; border: 2px solid #edf2f7; border-radius: 10px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--primary); }
+        .save-btn { background: var(--primary); color: white; width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: 800; margin-top: 10px; cursor: pointer; }
+
+        /* Modal (Detajli) */
+        .modal { display: none; position: fixed; z-index: 1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; padding:15px; }
+        .modal-content { background:white; width:100%; max-width:450px; border-radius:25px; padding:20px; position:relative; overflow-y: auto; max-height: 90vh; }
+        
+        /* Slika v modalu z gumbom za menjavo */
+        .modal-img-container { position: relative; width: 100%; margin-bottom: 15px; cursor: pointer; }
+        .modal-img-container img { width: 100%; border-radius: 15px; object-fit: contain; max-height: 60vh; }
+        .change-img-btn { 
+            position: absolute; bottom: 10px; right: 10px; 
+            background: rgba(0,0,0,0.6); color: white; 
+            padding: 8px 12px; border-radius: 20px; 
+            font-size: 0.75rem; font-weight: 600; 
+            backdrop-filter: blur(4px);
+        }
+
+        .close-btn { position:absolute; top:10px; right:15px; font-size:2rem; cursor:pointer; color: #333; font-weight: bold; }
+        .details { background:#f8fafd; padding:15px; border-radius:12px; margin:15px 0; font-size:0.9rem; line-height: 1.6; }
+        .details b { color: var(--primary); }
+        
+        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-del { background: var(--danger); color:white; border:none; flex: 1; padding:12px; border-radius:10px; font-weight:bold; cursor: pointer; }
+        .btn-save-change { background: var(--success); color:white; border:none; flex: 1; padding:12px; border-radius:10px; font-weight:bold; cursor: pointer; display: none; }
+
+        .back { color: var(--primary); font-weight: 700; margin-bottom: 15px; cursor: pointer; display: inline-block; }
+        #loading { display: none; text-align: center; font-weight: bold; color: var(--primary); margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="homePage" class="page active">
+        <h1>Moje Mape</h1>
+        <div class="folder" onclick="openPuzzleFolder()">
+            <span>🧩</span>
+            <div><h2>Puzzli</h2></div>
+        </div>
+        <div class="folder" style="border-left-color: #2ecc71;" onclick="alert('V pripravi...')">
+            <span>🎮</span>
+            <div><h2>Games</h2></div>
+        </div>
+    </div>
+
+    <div id="puzzlePage" class="page">
+        <div class="back" onclick="showPage('homePage')">← Domov</div>
+        <div class="puzzle-header">
+            <h2 style="margin:0">Arhiv</h2>
+            <button class="btn-add-new" onclick="showPage('addPage')">+ DODAJ</button>
+        </div>
+        <div class="gallery" id="gallery"></div>
+    </div>
+
+    <div id="addPage" class="page">
+        <div class="back" onclick="openPuzzleFolder()">← Nazaj</div>
+        <div class="card">
+            <h2>Nov Puzzle</h2>
+            <div class="form-group"><label>Ime</label><input type="text" id="pName" placeholder="Ime..."></div>
+            <div class="form-group"><label>Datum od</label><input type="date" id="pStart"></div>
+            <div class="form-group"><label>Datum do</label><input type="date" id="pEnd"></div>
+            <div class="form-group"><label>Koščkov</label><input type="number" id="pPieces" placeholder="1000"></div>
+            <div class="form-group"><label>Ure dela</label><input type="text" id="pTime" placeholder="Npr. 8 ur"></div>
+            <div class="form-group"><label>Slika</label><input type="file" id="pImg" accept="image/*"></div>
+            <div id="loading">Obdelujem sliko... ⏳</div>
+            <button class="save-btn" id="saveBtn" onclick="savePuzzle()">SHRANI V MAPO</button>
+        </div>
+    </div>
+
+    <div id="pModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            
+            <div class="modal-img-container" onclick="triggerImgChange()">
+                <img id="mImg">
+                <div class="change-img-btn">🔄 Zamenjaj sliko</div>
+            </div>
+            
+            <input type="file" id="pImgChange" accept="image/*" style="display: none;" onchange="processImgChange(this)">
+            
+            <h3 id="mName" style="margin:10px 0; color: var(--text);"></h3>
+            
+            <div class="details">
+                <p>📅 <b>Datum od:</b> <span id="mStart"></span></p>
+                <p>📅 <b>Datum do:</b> <span id="mEnd"></span></p>
+                <p>⏱️ <b>Skupaj:</b> <span id="mDays"></span> dni</p>
+                <p>⏳ <b>Ure dela:</b> <span id="mTime"></span></p>
+                <p>🧩 <b>Koščkov:</b> <span id="mPieces"></span></p>
+            </div>
+            
+            <div class="action-btns">
+                <button class="btn-del" onclick="deletePuzzle()">IZBRIŠI</button>
+                <button id="btnSaveChange" class="btn-save-change" onclick="saveNewImage()">SHRANI NOVO SLIKO</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentId = null;
+        let tempImageData = null; // Za shranjevanje Base64 nove slike pred potrditvijo
+
+        // --- NAVIGACIJA ---
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        function openPuzzleFolder() {
+            showPage('puzzlePage');
+            loadGallery();
+        }
+
+        // --- SHRANJEVANJE IN STISKANJE NOVEGA VNOSA ---
+        function savePuzzle() {
+            const name = document.getElementById('pName').value;
+            const file = document.getElementById('pImg').files[0];
+            
+            if (!name || !file) return alert("Vnesi vsaj ime in izberi sliko!");
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('saveBtn').disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Stiskanje slike na max 800px širine
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                    const start = document.getElementById('pStart').value;
+                    const end = document.getElementById('pEnd').value;
+                    let days = 0;
+                    if(start && end) days = Math.ceil((new Date(end) - new Date(start)) / (1000*60*60*24)) + 1;
+
+                    const item = {
+                        id: Date.now(),
+                        name: name,
+                        start: start,
+                        end: end,
+                        days: days,
+                        pieces: document.getElementById('pPieces').value,
+                        time: document.getElementById('pTime').value,
+                        img: compressedBase64
+                    };
+
+                    try {
+                        let data = JSON.parse(localStorage.getItem('puzzles') || '[]');
+                        data.push(item);
+                        localStorage.setItem('puzzles', JSON.stringify(data));
+                        
+                        // Počisti vnosna polja
+                        document.getElementById('pName').value = '';
+                        document.getElementById('pStart').value = '';
+                        document.getElementById('pEnd').value = '';
+                        document.getElementById('pPieces').value = '';
+                        document.getElementById('pTime').value = '';
+                        document.getElementById('pImg').value = '';
+                        
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('saveBtn').disabled = false;
+                        openPuzzleFolder();
+                    } catch (e) {
+                        alert("Napaka pri shranjevanju! Morda je pomnilnik poln.");
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('saveBtn').disabled = false;
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- NALAGANJE ARHIVA (GALERIJA) ---
+        function loadGallery() {
+            const container = document.getElementById('gallery');
+            container.innerHTML = '';
+            const data = JSON.parse(localStorage.getItem('puzzles') || '[]');
+            
+            if(data.length === 0) {
+                container.innerHTML = '<p style="grid-column: span 2; text-align:center; opacity:0.5; margin-top:30px;">Mapa je prazna.</p>';
+                return;
+            }
+
+            data.reverse().forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'thumb';
+                div.onclick = () => openDetails(p);
+                
+                let timeText = "";
+                if (p.days) timeText += `${p.days} dni`;
+                if (p.time) timeText += (timeText ? ` (${p.time})` : p.time);
+                if (!timeText) timeText = "-";
+
+                div.innerHTML = `
+                    <img src="${p.img}">
+                    <b>${p.name}</b>
+                    <i>⏱️ ${timeText}</i>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- DETAJLI (MODAL) ---
+        function openDetails(p) {
+            currentId = p.id;
+            tempImageData = null; // Ponastavi začasno sliko
+            document.getElementById('btnSaveChange').style.display = 'none'; // Skrij gumb za shranjevanje
+            
+            document.getElementById('mImg').src = p.img;
+            document.getElementById('mName').innerText = p.name;
+            document.getElementById('mStart').innerText = p.start || '/';
+            document.getElementById('mEnd').innerText = p.end || '/';
+            document.getElementById('mDays').innerText = p.days || '0';
+            document.getElementById('mTime').innerText = p.time || '/';
+            document.getElementById('mPieces').innerText = p.pieces || '/';
+            
+            document.getElementById('pModal').style.display = "flex";
+        }
+
+        function closeModal() { 
+            document.getElementById('pModal').style.display = "none"; 
+            document.getElementById('pImgChange').value = ''; // Počisti input za datoteke
+        }
+
+        // --- BRISANJE ---
+        function deletePuzzle() {
+            if(confirm("Izbrišem to sestavljanko?")) {
+                let data = JSON.parse(localStorage.getItem('puzzles') || '[]');
+                data = data.filter(i => i.id !== currentId);
+                localStorage.setItem('puzzles', JSON.stringify(data));
+                closeModal();
+                loadGallery();
+            }
+        }
+
+        // --- FUNKCIJE ZA MENJAVO SLIKE ---
+        
+        // Sproži klik na skriti input za datoteke
+        function triggerImgChange() {
+            document.getElementById('pImgChange').click();
+        }
+
+        // Obdela izbrano novo sliko (stisne in prikaže predogled)
+        function processImgChange(input) {
+            const file = input.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Stiskanje slike (enako kot pri dodajanju)
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    tempImageData = canvas.toDataURL('image/jpeg', 0.7); // Shrani Base64 v začasno spremenljivko
+                    document.getElementById('mImg').src = tempImageData; // Prikaži predogled v modalu
+                    document.getElementById('btnSaveChange').style.display = 'block'; // Prikaži gumb za shranjevanje
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Shrani novo sliko v localStorage
+        function saveNewImage() {
+            if(!tempImageData || !currentId) return;
+
+            let data = JSON.parse(localStorage.getItem('puzzles') || '[]');
+            // Poišči puzzle in posodobi sliko
+            data = data.map(p => {
+                if(p.id === currentId) {
+                    p.img = tempImageData;
+                }
+                return p;
+            });
+
+            try {
+                localStorage.setItem('puzzles', JSON.stringify(data));
+                alert("Slika uspešno zamenjana!");
+                closeModal();
+                loadGallery();
+            } catch(e) {
+                alert("Napaka pri shranjevanju! Pomnilnik je verjetno poln.");
+            }
+        }
+
+        // Zapri modal ob kliku izven vsebine
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('pModal')) closeModal();
+        }
+    </script>
+</body>
+</html>
